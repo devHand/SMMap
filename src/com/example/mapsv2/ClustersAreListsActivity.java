@@ -28,10 +28,14 @@ import java.util.LinkedList;
 import java.util.List;
 
 import android.annotation.SuppressLint;
+import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.Point;
 import android.graphics.Rect;
 import android.graphics.drawable.GradientDrawable;
+import android.location.Location;
+import android.location.LocationListener;
+import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.FragmentActivity;
@@ -85,12 +89,45 @@ public class ClustersAreListsActivity extends FragmentActivity implements OnMark
 	private GradientDrawable spotDrawable;
 	private SpotlightAnimation spotAnimation;
 	
+	//For location
+	Marker mMarker;
+	LocationManager lm;
+	double lat = -23.7003593445, lng = 133.8808898926;
+	
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_clustersarelists);
         
+     // location:
+        lm = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+
+		boolean isNetwork = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+		boolean isGPS = lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
+
+		if(isNetwork) {
+			lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 10, listener);
+			Location loc = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+			if(loc != null) {
+				lat = loc.getLatitude();
+			    lng = loc.getLongitude();
+			}
+		}
+		
+		if(isGPS) {
+			lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, listener);
+			Location loc = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+			if(loc != null) {
+				lat = loc.getLatitude();
+			    lng = loc.getLongitude();
+			}
+		}
+		
+		//markers:
+        
         setUpMapIfNeeded();
+        
+        
         
         setupPart2();
         setupPart3();
@@ -99,8 +136,64 @@ public class ClustersAreListsActivity extends FragmentActivity implements OnMark
     @Override
     protected void onResume() {
         super.onResume();
-        setUpMapIfNeeded();
+        
+        // location:
+        lm = (LocationManager)getSystemService(Context.LOCATION_SERVICE);
+
+		boolean isNetwork = lm.isProviderEnabled(LocationManager.NETWORK_PROVIDER);
+		boolean isGPS = lm.isProviderEnabled(LocationManager.GPS_PROVIDER);
+		
+		if(isNetwork) {
+			lm.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 10, listener);
+			Location loc = lm.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+			if(loc != null) {
+				lat = loc.getLatitude();
+			    lng = loc.getLongitude();
+			}
+		}
+		
+		if(isGPS) {
+			lm.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, listener);
+			Location loc = lm.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+			if(loc != null) {
+				lat = loc.getLatitude();
+			    lng = loc.getLongitude();
+			}
+		}
+		
+		
+    	
+		//markers:
+		setUpMapIfNeeded();
     }
+    
+    protected void onPause() {
+    	super.onPause();
+		lm.removeUpdates(listener);
+    };
+    
+    //LocationListener
+    LocationListener listener = new LocationListener() {
+	    public void onLocationChanged(Location loc) {
+	    	lat = loc.getLatitude();
+	    	lng = loc.getLongitude();
+	    	
+	    	LatLng coordinate = new LatLng(lat,lng);
+	    	
+	    	
+	    	if(mMarker != null)
+	    		mMarker.remove();
+	    	
+	    	mMarker = map.addMarker(new MarkerOptions()
+	    								.position(coordinate)
+	    								.icon(BitmapDescriptorFactory.defaultMarker(360)));
+	    	map.animateCamera(CameraUpdateFactory.newLatLngZoom(coordinate, 16));
+	    }
+
+	    public void onStatusChanged(String provider, int status, Bundle extras) {}
+	    public void onProviderEnabled(String provider) {}
+	    public void onProviderDisabled(String provider) {}
+	};
 
     private void setUpMapIfNeeded() {
         // Do a null check to confirm that we have not already instantiated the map.
@@ -111,6 +204,8 @@ public class ClustersAreListsActivity extends FragmentActivity implements OnMark
             // Check if we were successful in obtaining the map.
             if (map != null) {
                 setUpMap();
+                
+                
             }
         }
     }
@@ -156,13 +251,20 @@ public class ClustersAreListsActivity extends FragmentActivity implements OnMark
     private void createMarkerDataSet() {
         // Creates a marker rainbow demonstrating how to create default marker icons of different
         // hues (colors).
+    	if(mMarker != null)
+        {
+    		mMarker.remove();
+        }
+    	mMarker = map.addMarker(new MarkerOptions()
+		.position(new LatLng(lat, lng)).title("center Marker "));
+    	
         int numMarkersInRainbow = 12;
         markers = new ArrayList<Marker>(numMarkersInRainbow);
         for (int i = 0; i < numMarkersInRainbow; i++) {
             Marker m = map.addMarker(new MarkerOptions()
                     .position(new LatLng(
-                    		-23.7003593445 + 0.1 * Math.sin(i * Math.PI / (numMarkersInRainbow - 1)),
-                            133.8808898926 - 0.1 * Math.cos(i * Math.PI / (numMarkersInRainbow - 1))))
+                    		lat + 0.01 * Math.sin(i * Math.PI / (numMarkersInRainbow - 1)),
+                            lng - 0.01 * Math.cos(i * Math.PI / (numMarkersInRainbow - 1))))
                     .title("Marker " + i)
                     .icon(BitmapDescriptorFactory.defaultMarker(i * 360 / numMarkersInRainbow)));
             markers.add(m);
